@@ -73,6 +73,7 @@ func NewIIREqualizer() EqualizerJSON {
 
 func (eq *EqualizerJSON) AddBand(i int, b Band) {
 	eq.Output.Equalizer.Left[fmt.Sprintf("band%d", i)] = b
+	eq.Output.Equalizer.NumBands = len(eq.Output.Equalizer.Left)
 }
 
 func (eq EqualizerJSON) Patch(original []byte) ([]byte, error) {
