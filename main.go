@@ -41,21 +41,19 @@ func main() {
 		inputFile = f
 	}
 
-	var outputFile = os.Stdout
-
-	if output != "" {
-		f, err := os.Create(output)
-		if err != nil {
-			log.Fatalln("Failed to create output:", err)
-		}
-		defer f.Close()
-
-		outputFile = f
-	}
-
 	var equalizer = NewIIREqualizer()
 
 	var scanner = bufio.NewScanner(inputFile)
+
+	if scanner.Scan() {
+		preamp, err := ParsePreamp(scanner.Text())
+		if err != nil {
+			log.Fatalln("Failed to scan preamp:", err)
+		}
+
+		equalizer.SetPreamp(preamp)
+	}
+
 	for scanner.Scan() {
 		band, i, err := ParseBand(scanner.Text())
 		if err != nil {
@@ -63,6 +61,10 @@ func main() {
 		}
 
 		equalizer.AddBand(i, band)
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatalln("Failed to scan:")
 	}
 
 	var patch []byte
@@ -86,6 +88,18 @@ func main() {
 
 	if err := json.Indent(&buf, b, "", "    "); err != nil {
 		log.Fatalln("Failed to indent JSON:", err)
+	}
+
+	var outputFile = os.Stdout
+
+	if output != "" {
+		f, err := os.Create(output)
+		if err != nil {
+			log.Fatalln("Failed to create output:", err)
+		}
+		defer f.Close()
+
+		outputFile = f
 	}
 
 	if _, err := buf.WriteTo(outputFile); err != nil {

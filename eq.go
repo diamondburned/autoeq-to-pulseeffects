@@ -8,6 +8,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// PreampLine is the line for preamp.
+const PreampLine = "Preamp: %f dB"
+
 // EQLine              index        freq       gain    quality
 const EQLine = `Filter %d: ON PK Fc %d Hz Gain %f dB Q %f`
 
@@ -30,6 +33,11 @@ func NewBand() Band {
 	}
 }
 
+func ParsePreamp(preampLine string) (preamp float64, err error) {
+	_, err = fmt.Sscanf(preampLine, PreampLine, &preamp)
+	return
+}
+
 func ParseBand(eqLine string) (band Band, i int, err error) {
 	band = NewBand()
 
@@ -50,10 +58,11 @@ func ParseBand(eqLine string) (band Band, i int, err error) {
 type EqualizerJSON struct {
 	Output struct {
 		Equalizer struct {
-			State         bool   `json:"state,string"`
-			Mode          string `json:"mode"` // IIR
-			NumBands      int    `json:"num-bands,string"`
-			SplitChannels bool   `json:"split-channels,string"`
+			State         bool    `json:"state,string"`
+			Mode          string  `json:"mode"` // IIR
+			NumBands      int     `json:"num-bands,string"`
+			SplitChannels bool    `json:"split-channels,string"`
+			InputGain     float64 `json:"input-gain,omitempty"`
 
 			Left  map[string]Band `json:"left"`
 			Right map[string]Band `json:"right"`
@@ -74,6 +83,10 @@ func NewIIREqualizer() EqualizerJSON {
 func (eq *EqualizerJSON) AddBand(i int, b Band) {
 	eq.Output.Equalizer.Left[fmt.Sprintf("band%d", i)] = b
 	eq.Output.Equalizer.NumBands = len(eq.Output.Equalizer.Left)
+}
+
+func (eq *EqualizerJSON) SetPreamp(preamp float64) {
+	eq.Output.Equalizer.InputGain = preamp
 }
 
 func (eq EqualizerJSON) Patch(original []byte) ([]byte, error) {
